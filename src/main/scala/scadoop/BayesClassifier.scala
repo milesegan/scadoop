@@ -29,7 +29,7 @@ class BayesClassifier private(
   }
 
   /**
-   * Classify a new sample based on prior samples
+   * Classify a new sample based on prior samples.
    *
    * @return A sequence of classes & their probabilities,
    * in order of decreasing likelihood.
@@ -53,7 +53,7 @@ class BayesClassifier private(
 
   override
   def toString = {
-    Seq(classes, features, featureClasses).mkString
+    Seq("classes:", classes, "features:", features, "feature-classes:", featureClasses).mkString("\n")
   }
 }
 

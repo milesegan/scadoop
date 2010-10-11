@@ -12,10 +12,10 @@ import cascading.tap.{Hfs, Tap}
 import cascading.tap.SinkMode
 import cascading.tuple.{Fields, Tuple}
 import collection.mutable.{Map => MMap}
-import java.util.Properties
 
 class BayesSplitter 
-extends BaseOperation[Array[String]](new Fields("dummy", "class", "features")) with Function[Array[String]] {
+extends BaseOperation[Array[String]](new Fields("dummy", "class", "features")) 
+with Function[Array[String]] {
 
   def operate(fp: FlowProcess, fc: FunctionCall[Array[String]]) = {
     val args = fc.getArguments.getTuple()
@@ -26,7 +26,7 @@ extends BaseOperation[Array[String]](new Fields("dummy", "class", "features")) w
     }
     else {
       val feats = new Tuple()
-      for (f <- names zip str.tail) feats.add(f._1 + "__" + f._2)
+      for (f <- names zip str.tail) feats.add(f._1 + "++" + f._2)
       fc.getOutputCollector().add(new Tuple("-", str.head, feats))
     }
   }
@@ -34,7 +34,8 @@ extends BaseOperation[Array[String]](new Fields("dummy", "class", "features")) w
 }
 
 class BayesAggregator
-extends BaseOperation[BayesClassifier](2, new Fields("bayes")) with Aggregator[BayesClassifier] {
+extends BaseOperation[BayesClassifier](2, new Fields("bayes")) 
+with Aggregator[BayesClassifier] {
 
   def start(fp: FlowProcess, ac: AggregatorCall[BayesClassifier]) {
     ac.setContext(BayesClassifier())
@@ -67,15 +68,16 @@ object Bayes {
     val sinkScheme = new TextLine(new Fields("bc"))
     val sink = new Hfs(sinkScheme, outputPath, SinkMode.REPLACE)
 
-    var assembly = new Pipe("bayes")
-    assembly = new Each(assembly, new BayesSplitter)
-    assembly = new GroupBy(assembly, new Fields("dummy"))
-    assembly = new Every(assembly, new BayesAggregator)
-    assembly = new Each(assembly, new Fields("bayes"), new Identity)
+    var p = new Pipe("bayes")
+    p = new Each(p, new BayesSplitter)
+    p = new GroupBy(p, new Fields("dummy"))
+    p = new Every(p, new BayesAggregator)
+    p = new Each(p, new Fields("bayes"), new Identity)
 
     val flowConnector = new FlowConnector()
-    val flow = flowConnector.connect("bayes", source, sink, assembly)
+    val flow = flowConnector.connect("bayes", source, sink, p)
 
     flow.complete()
   }
+
 }
