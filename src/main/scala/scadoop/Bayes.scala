@@ -15,7 +15,7 @@ import collection.mutable.{Map => MMap}
 import java.util.Properties
 
 class BayesSplitter 
-extends BaseOperation[Array[String]](new Fields("tag", "class", "features")) with Function[Array[String]] {
+extends BaseOperation[Array[String]](new Fields("dummy", "class", "features")) with Function[Array[String]] {
 
   def operate(fp: FlowProcess, fc: FunctionCall[Array[String]]) = {
     val args = fc.getArguments.getTuple()
@@ -27,7 +27,7 @@ extends BaseOperation[Array[String]](new Fields("tag", "class", "features")) wit
     else {
       val feats = new Tuple()
       for (f <- names zip str.tail) feats.add(f._1 + "__" + f._2)
-      fc.getOutputCollector().add(new Tuple("tag", str.head, feats))
+      fc.getOutputCollector().add(new Tuple("-", str.head, feats))
     }
   }
 
@@ -68,9 +68,9 @@ object Bayes {
     val sink = new Hfs(sinkScheme, outputPath, SinkMode.REPLACE)
 
     var assembly = new Pipe("bayes")
-    assembly = new Each(assembly, Fields.ALL, new BayesSplitter)
-    assembly = new GroupBy(assembly, new Fields("tag"))
-    assembly = new Every(assembly, new Fields("tag", "class", "features"), new BayesAggregator)
+    assembly = new Each(assembly, new BayesSplitter)
+    assembly = new GroupBy(assembly, new Fields("dummy"))
+    assembly = new Every(assembly, new BayesAggregator)
     assembly = new Each(assembly, new Fields("bayes"), new Identity)
 
     val flowConnector = new FlowConnector()
