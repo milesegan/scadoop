@@ -18,8 +18,8 @@ extends BaseOperation[Array[String]](new Fields("dummy", "class", "features"))
 with Function[Array[String]] {
 
   def operate(fp: FlowProcess, fc: FunctionCall[Array[String]]) = {
-    val args = fc.getArguments.getTuple()
-    val str = args.toString.split(",")
+    val tokens = fc.getArguments.getString("tokens")
+    val str = tokens.toString.split(",")
     var names = fc.getContext
     if (names == null) {
       fc.setContext(str.tail)
@@ -43,8 +43,8 @@ with Aggregator[BayesClassifier] {
 
   def aggregate(fp: FlowProcess, ac: AggregatorCall[BayesClassifier]) {
     val bc = ac.getContext
-    val klass = ac.getArguments.getTuple().getString(1)
-    val featT = ac.getArguments.getTuple().getObject(2).asInstanceOf[Tuple]
+    val klass = ac.getArguments.getString("class")
+    val featT = ac.getArguments.getObject("features").asInstanceOf[Tuple]
     val feats = (0 until featT.size).map(featT.getString(_))
     val newbc = bc.addSample(feats, klass)
     ac.setContext(newbc)

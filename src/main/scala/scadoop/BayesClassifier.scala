@@ -34,7 +34,7 @@ class BayesClassifier private(
    * @return A sequence of classes & their probabilities,
    * in order of decreasing likelihood.
    */
-  def classify(feat: Seq[String]): Seq[(String,Double)] = {
+  def classify(feat: Seq[String]): Seq[(String, Double)] = {
     val ranked = for (c <- classes.keySet) yield {
       val probs = for (f <- feat) yield probability(f, c)
       (c, probs.product * classes.getOrElse(c, 0.0) / count)
@@ -53,7 +53,15 @@ class BayesClassifier private(
 
   override
   def toString = {
-    Seq("classes:", classes, "features:", features, "feature-classes:", featureClasses).mkString("\n")
+    def mkMapString(m: Map[_, Double]) = {
+      m.toSeq.map{ 
+        case(a: String, b) => a + "\t" + b
+        case(a: (String,String), b) => a._1 + "\t" + a._2 + "\t" + b
+      }.mkString("\n")
+    }
+    Seq(mkMapString(classes),
+        mkMapString(features),
+        mkMapString(featureClasses)).mkString("\n----------\n")
   }
 }
 
