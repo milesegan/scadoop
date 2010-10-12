@@ -52,7 +52,7 @@ with Aggregator[BayesClassifier] {
 
   def complete(fp: FlowProcess, ac: AggregatorCall[BayesClassifier]) {
     val bc = ac.getContext
-    ac.getOutputCollector().add(new Tuple(bc))
+    ac.getOutputCollector().add(new Tuple(bc.toJson))
   }
 
 }

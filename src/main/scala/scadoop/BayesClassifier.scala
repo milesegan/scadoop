@@ -1,5 +1,6 @@
 package scadoop
 
+import com.twitter.json.{Json, JsonSerializable}
 /**
  * Naive Bayesian classifier.
  */
@@ -7,7 +8,7 @@ class BayesClassifier private(
   val classes: Map[String,Double],
   val features: Map[String,Double],
   val featureClasses: Map[(String,String),Double],
-  val count: Double) {
+  val count: Double) extends JsonSerializable {
 
   /**
    * Increments values in map for every key in keys.
@@ -34,7 +35,7 @@ class BayesClassifier private(
    * @return A sequence of classes & their probabilities,
    * in order of decreasing likelihood.
    */
-  def classify(feat: Seq[String]): Seq[(String, Double)] = {
+  def classify(feat: Seq[String]): Seq[(String,Double)] = {
     val ranked = for (c <- classes.keySet) yield {
       val probs = for (f <- feat) yield probability(f, c)
       (c, probs.product * classes.getOrElse(c, 0.0) / count)
@@ -51,22 +52,23 @@ class BayesClassifier private(
     pCF / count
   }
 
-  override
-  def toString = {
-    def mkMapString(m: Map[_, Double]) = {
-      m.toSeq.map{ 
-        case(a: String, b) => a + "\t" + b
-        case(a: (String,String), b) => a._1 + "\t" + a._2 + "\t" + b
-      }.mkString("\n")
-    }
-    Seq(mkMapString(classes),
-        mkMapString(features),
-        mkMapString(featureClasses)).mkString("\n----------\n")
+  def toJson: String = {
+    val fc = for((f, c) <- featureClasses) yield List(f._1, f._2, c)
+    val m = Map("classes" -> classes, 
+                "features" -> features, 
+                "feature-classes" -> fc)
+    Json.build(m).toString
   }
+
 }
 
 object BayesClassifier {
   def apply() = {
+    new BayesClassifier(Map.empty, Map.empty, Map.empty, 0)
+  }
+  
+  def apply(json: String) = {
+    val d = Json.parse(json)
     new BayesClassifier(Map.empty, Map.empty, Map.empty, 0)
   }
 }
