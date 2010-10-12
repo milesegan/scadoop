@@ -1,2 +1,4 @@
-This project uses cascading/hadoop via Scala. More to come.
+Scadoop is an implmentation of various machine learning algorithms
+on Hadoop via Scala and Cascading. Details forthcoming.
+
 
