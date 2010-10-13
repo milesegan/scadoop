@@ -7,8 +7,8 @@ import com.twitter.json.{Json, JsonSerializable}
 class BayesClassifier private(
   val classes: Map[String,Double],
   val features: Map[String,Double],
-  val featureClasses: Map[(String,String),Double],
-  val count: Double) extends JsonSerializable {
+  val featureClasses: Map[String,Map[String,Double]],
+  val count: Double) extends JsonSerializable with java.io.Serializable {
 
   /**
    * Increments values in map for every key in keys.
@@ -24,9 +24,10 @@ class BayesClassifier private(
   def addSample(feat: Seq[String], klass: String): BayesClassifier = {
     val newFs = incKeys(features, feat)
     val newCs = incKeys(classes, Seq(klass))
-    val newFCPairs = for (f <- feat) yield (f, klass)
-    val newFCs = incKeys(featureClasses, newFCPairs)
-    new BayesClassifier(newCs, newFs, newFCs, count + 1d)
+    val newFCs = feat.map { f => 
+      f -> incKeys(featureClasses.getOrElse(f, Map()), Seq(klass))
+    }
+    new BayesClassifier(newCs, newFs, featureClasses ++ newFCs, count + 1d)
   }
 
   /**
@@ -38,7 +39,7 @@ class BayesClassifier private(
   def classify(feat: Seq[String]): Seq[(String,Double)] = {
     val ranked = for (c <- classes.keySet) yield {
       val probs = for (f <- feat) yield probability(f, c)
-      (c, probs.product * classes.getOrElse(c, 0.0) / count)
+      (c, probs.product.toDouble * classes.getOrElse(c, 0d) / count)
     }
     ranked.toSeq.sortBy(_._2).reverse
   }
@@ -48,15 +49,15 @@ class BayesClassifier private(
    * the feature.
    */
   def probability(f: String, klass: String): Double = {
-    val pCF = featureClasses.getOrElse((f, klass), 0.05) // TODO: optimize fudge factor
+    val pCF = featureClasses.getOrElse(f, Map()).getOrElse(klass, 0.05) // TODO: optimize fudge factor
     pCF / count
   }
 
   def toJson: String = {
-    val fc = for((f, c) <- featureClasses) yield List(f._1, f._2, c)
-    val m = Map("classes" -> classes, 
+    val m = Map("count" -> count,
+                "classes" -> classes, 
                 "features" -> features, 
-                "feature-classes" -> fc)
+                "feature-classes" -> featureClasses)
     Json.build(m).toString
   }
 
@@ -66,9 +67,14 @@ object BayesClassifier {
   def apply() = {
     new BayesClassifier(Map.empty, Map.empty, Map.empty, 0)
   }
-  
+
   def apply(json: String) = {
-    val d = Json.parse(json)
-    new BayesClassifier(Map.empty, Map.empty, Map.empty, 0)
+    import util.parsing.json.JSON
+    JSON.perThreadNumberParser = { s => s.toDouble }
+    val m = JSON.parseFull(json).get.asInstanceOf[Map[String,_]]
+    new BayesClassifier(m("classes").asInstanceOf[Map[String,Double]], 
+                        m("features").asInstanceOf[Map[String,Double]], 
+                        m("feature-classes").asInstanceOf[Map[String,Map[String,Double]]],
+                        m("count").asInstanceOf[Double])
   }
 }

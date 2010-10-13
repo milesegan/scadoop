@@ -1,5 +1,7 @@
 input/
 lib/
+lib_managed/
 output/
 project/boot/
 target/
+train/
